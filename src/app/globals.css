@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #020202;
+  --color-foreground: #ffffff;
+  --color-primary: #e11d48;
+  --color-secondary: #0a0a0a;
+  --color-surface: #0a0a0a;
+  --color-muted: #9b968d;
+
+  --font-sans: "Segoe UI", "Helvetica Neue", "Arial Nova", sans-serif;
+  --font-display: "Trebuchet MS", "Segoe UI", "Arial Nova", sans-serif;
+}
+
+:root {
+  --background: #020202;
+  --foreground: #ffffff;
+  --primary: #e11d48;
+  --surface: #0a0a0a;
+  
+  --glass-bg: rgba(10, 10, 10, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --premium-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: 
+    radial-gradient(circle at 0% 0%, rgba(225, 29, 72, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(225, 29, 72, 0.05) 0%, transparent 40%),
+    #020202;
+}
+
+/* Premium Animations */
+@keyframes mesh-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-mesh {
+  background: linear-gradient(-45deg, #020202, #0a0a0a, #1a1a1a, #020202);
+  background-size: 400% 400%;
+  animation: mesh-gradient 15s ease infinite;
+}
+
+/* Advanced Glassmorphism */
+.glass-premium {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--premium-shadow);
+  transform: translateZ(0);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transform: translateZ(0);
+}
+
+/* Netflix Style Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020202;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Button Refinement */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-500 hover:scale-[1.02] active:scale-[0.98];
+  background: linear-gradient(135deg, #fb7185 0%, #e11d48 50%, #be123c 100%);
+  box-shadow: 0 10px 30px -10px rgba(225, 29, 72, 0.5);
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-500 hover:bg-white/10 hover:border-white/20;
+  backdrop-filter: blur(10px);
+}
+
+/* Movie Card Premium Glow */
+.movie-card-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(225, 29, 72, 0.2) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.movie-card-shell:hover .movie-card-glow {
+  opacity: 1;
+}
+
+.movie-chip {
+  @apply inline-flex items-center rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wider bg-black/60 backdrop-blur-md border border-white/10;
+}
+
+/* Custom range slider for video player volume */
+.player-volume-slider {
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  outline: none;
+}
+
+.player-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.player-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
