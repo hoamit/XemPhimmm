@@ -12,17 +12,14 @@ export const FALLBACK_IMAGE_SRC = '/fallback.jpg';
 const DEFAULT_IMAGE_BASE = 'https://phimimg.com';
 
 const HOST_ALIASES = new Map<string, string>([
-  ['img.ophim.live', 'phimimg.com'],
-  ['img.ophim1.com', 'phimimg.com'],
-  ['img.ophim.org', 'phimimg.com'],
-  ['img.kkphim.com', 'phimimg.com'],
-  ['img.kkphim.live', 'phimimg.com'],
   ['img.phimapi.com', 'phimimg.com'],
   ['media.cdn.phimapi.com', 'phimimg.com'],
-  ['ophim1.com', 'phimimg.com'],
-  ['ophim.cc', 'phimimg.com'],
-  ['kkphim.com', 'phimimg.com'],
 ]);
+
+// Helper to check if a hostname is a known movie image source
+function isMovieImageHost(hostname: string) {
+  return hostname.includes('phimimg');
+}
 
 export type ApiMovieLike = Partial<MovieListItem> &
   Partial<MovieDetail> & {
@@ -109,20 +106,25 @@ function ensureTrailingSlash(value: string) {
 }
 
 function normalizeHost(url: URL) {
-  const alias = HOST_ALIASES.get(url.hostname);
+  const host = url.hostname.toLowerCase();
+  const alias = HOST_ALIASES.get(host);
 
   if (alias) {
     url.hostname = alias;
-    url.protocol = 'https:';
   }
 
-  if (url.protocol === 'http:') {
-    url.protocol = 'https:';
-  }
+  // Ensure protocol is always https
+  url.protocol = 'https:';
 
-  url.pathname = url.pathname
-    .replace(/\/{2,}/g, '/')
-    .replace(/(\/uploads\/movies)+\/uploads\/movies/g, '/uploads/movies');
+  // Standardize the path to avoid nested patterns or missing prefixes
+  let path = url.pathname.replace(/\/{2,}/g, '/');
+  
+  // Specific fix for double uploads/movies paths which happens with some API sources
+  path = path.replace(/^(\/uploads\/movies)+/, '/uploads/movies');
+  path = path.replace(/^(\/uploads)+/, '/uploads');
+  path = path.replace(/^(\/upload\/vod)+/, '/upload/vod');
+
+  url.pathname = path.replace(/\/{2,}/g, '/');
 
   return url;
 }
