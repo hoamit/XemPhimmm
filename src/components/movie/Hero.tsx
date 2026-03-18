@@ -63,7 +63,7 @@ const Hero: React.FC<HeroProps> = ({ movie }) => {
               <p className="text-xs font-black uppercase tracking-[0.5em] text-primary">Phim Đề Cử</p>
             </div>
             
-            <h1 className="font-display text-7xl font-black tracking-tighter text-white drop-shadow-2xl md:text-9xl">
+            <h1 className="font-display text-4xl font-black tracking-tighter text-white drop-shadow-2xl sm:text-6xl md:text-8xl">
               {title}
             </h1>
           </motion.div>

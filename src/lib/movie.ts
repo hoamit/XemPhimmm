@@ -136,9 +136,10 @@ export function resolveImageBase(...candidates: Array<string | null | undefined>
     }
 
     try {
-      const url = value.startsWith('http')
-        ? new URL(value)
-        : new URL(value, ensureTrailingSlash(DEFAULT_IMAGE_BASE));
+      const normalizedValue = value.startsWith('//') ? `https:${value}` : value;
+      const url = normalizedValue.startsWith('http')
+        ? new URL(normalizedValue)
+        : new URL(normalizedValue, ensureTrailingSlash(DEFAULT_IMAGE_BASE));
 
       return normalizeHost(url).toString();
     } catch {

@@ -87,7 +87,7 @@ export default function MovieDetailView({ movie, episodes, relatedMovies }: Movi
                 </div>
 
                 <div className="space-y-4">
-                  <h1 className="font-display text-5xl font-black tracking-tight text-white drop-shadow-2xl md:text-8xl">
+                  <h1 className="font-display text-3xl font-black tracking-tight text-white drop-shadow-2xl sm:text-5xl md:text-7xl">
                     {title}
                   </h1>
                   {movie.origin_name ? (
