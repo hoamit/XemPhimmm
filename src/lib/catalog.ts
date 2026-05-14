@@ -1,7 +1,7 @@
 import { apiClient } from '@/lib/api/client';
 import { isFallbackImage } from '@/lib/movie';
 import { MovieDetail, MovieListItem } from '@/types/movie';
-import { dedupeMovies, stripHtml } from '@/lib/utils';
+import { dedupeMovies, dedupeMoviesByFranchise, stripHtml } from '@/lib/utils';
 
 export const TYPE_CONFIG: Record<
   string,
@@ -83,6 +83,35 @@ function pickHeroCandidate(movies: MovieListItem[]) {
   );
 }
 
+function takeUniqueMovies(
+  movies: MovieListItem[],
+  limit: number,
+  usedSlugs?: Set<string>
+) {
+  const unique = dedupeMoviesByFranchise(movies);
+
+  if (!usedSlugs) {
+    return unique.slice(0, limit);
+  }
+
+  const selected: MovieListItem[] = [];
+  for (const movie of unique) {
+    const slug = movie.slug.trim().toLowerCase();
+    if (!slug || usedSlugs.has(slug)) {
+      continue;
+    }
+
+    usedSlugs.add(slug);
+    selected.push(movie);
+
+    if (selected.length >= limit) {
+      break;
+    }
+  }
+
+  return selected;
+}
+
 export async function getHomePageData() {
   const [latest, series, singles, animation, shows] = await Promise.all([
     apiClient.getLatestMovies(1, 2),
@@ -98,6 +127,7 @@ export async function getHomePageData() {
     ...series.items.slice(0, 10),
   ]);
   const heroCandidate = pickHeroCandidate(spotlightPool) || latest.items[0];
+  const usedSlugs = new Set<string>();
 
   let heroMovie: MovieDetail | null = null;
   if (heroCandidate?.slug) {
@@ -111,50 +141,54 @@ export async function getHomePageData() {
 
   const sections = [
     {
-      title: 'Moi cap nhat',
+      title: 'Mới cập nhật',
       subtitle: 'Nhiều trang phim mới nhất được gộp lại để feed luôn dày.',
       href: '/search?q=phim',
       accent: 'from-rose-400/35 via-orange-300/10 to-transparent',
-      movies: latest.items.slice(0, 24),
+      movies: takeUniqueMovies(latest.items, 24, usedSlugs),
     },
     {
       title: TYPE_CONFIG['phim-bo'].label,
       subtitle: TYPE_CONFIG['phim-bo'].description,
       href: '/type/phim-bo',
       accent: TYPE_CONFIG['phim-bo'].accent,
-      movies: series.items.slice(0, 24),
+      movies: takeUniqueMovies(series.items, 24, usedSlugs),
     },
     {
       title: TYPE_CONFIG['phim-le'].label,
       subtitle: TYPE_CONFIG['phim-le'].description,
       href: '/type/phim-le',
       accent: TYPE_CONFIG['phim-le'].accent,
-      movies: singles.items.slice(0, 24),
+      movies: takeUniqueMovies(singles.items, 24, usedSlugs),
     },
     {
-      title: 'Tuyen chon cuoi tuan',
-      subtitle: 'Mix phim le, phim bo va title moi de mo vao la xem ngay.',
+      title: 'Tuyển chọn cuối tuần',
+      subtitle: 'Mix phim lẻ, phim bộ và title mới để mở vào là xem ngay.',
       href: '/search?q=hay',
       accent: 'from-violet-400/30 via-blue-300/10 to-transparent',
-      movies: dedupeMovies([
+      movies: takeUniqueMovies(
+        dedupeMovies([
         ...singles.items.slice(0, 12),
         ...series.items.slice(0, 12),
         ...latest.items.slice(0, 8),
-      ]).slice(0, 24),
+        ]),
+        24,
+        usedSlugs
+      ),
     },
     {
       title: TYPE_CONFIG['hoat-hinh'].label,
       subtitle: TYPE_CONFIG['hoat-hinh'].description,
       href: '/type/hoat-hinh',
       accent: TYPE_CONFIG['hoat-hinh'].accent,
-      movies: animation.items.slice(0, 24),
+      movies: takeUniqueMovies(animation.items, 24, usedSlugs),
     },
     {
       title: TYPE_CONFIG['tv-shows'].label,
       subtitle: TYPE_CONFIG['tv-shows'].description,
       href: '/type/tv-shows',
       accent: TYPE_CONFIG['tv-shows'].accent,
-      movies: shows.items.slice(0, 24),
+      movies: takeUniqueMovies(shows.items, 24, usedSlugs),
     },
   ];
 
@@ -177,8 +211,8 @@ export async function getHomePageData() {
 export function getTypeConfig(type: string) {
   return (
     TYPE_CONFIG[type] || {
-      label: 'Danh muc',
-      description: 'Kho phim duoc cap nhat tu nhieu nguon.',
+      label: 'Danh mục',
+      description: 'Kho phim được cập nhật từ nhiều nguồn.',
       tagline: 'Fresh catalog',
       fetchCount: 4,
       accent: 'from-white/20 to-transparent',
@@ -189,14 +223,17 @@ export function getTypeConfig(type: string) {
 export async function getTypePageData(type: string, page: number = 1, extraParams: Record<string, string | number | undefined> = {}) {
   const config = getTypeConfig(type);
   const response = await apiClient.getMoviesByFilter(type, page, 1, extraParams);
+  const uniqueItems = dedupeMoviesByFranchise(response.items);
+  const perPage = Math.max(1, Number(response.pagination?.totalItemsPerPage || 24));
+  const pageItems = uniqueItems.slice(0, perPage);
 
   return {
     config,
-    movies: response.items,
+    movies: pageItems,
     pagination: response.pagination,
     spotlight: dedupeMovies([
-      ...response.items.filter((movie) => movie.year >= 2024),
-      ...response.items,
+      ...pageItems.filter((movie) => movie.year >= 2024),
+      ...pageItems,
     ]).slice(0, 6),
   };
 }
@@ -232,9 +269,13 @@ export async function getRelatedMovies(movieType: string, currentSlug: string) {
 
   if (!mappedType) {
     const latest = await apiClient.getLatestMovies(1, 3);
-    return latest.items.filter((movie) => movie.slug !== currentSlug).slice(0, 18);
+    return dedupeMoviesByFranchise(latest.items)
+      .filter((movie) => movie.slug !== currentSlug)
+      .slice(0, 18);
   }
 
   const response = await apiClient.getMoviesByFilter(mappedType, 1, 4);
-  return response.items.filter((movie) => movie.slug !== currentSlug).slice(0, 18);
+  return dedupeMoviesByFranchise(response.items)
+    .filter((movie) => movie.slug !== currentSlug)
+    .slice(0, 18);
 }

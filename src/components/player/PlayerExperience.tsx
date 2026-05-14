@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -138,7 +138,7 @@ const PlayerExperience: React.FC<PlayerExperienceProps> = ({ movie, servers, ini
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,4,4,0.74)_0%,rgba(4,4,4,0.92)_38%,rgba(4,4,4,1)_100%)]" />
       </div>
 
-      <div className="relative mx-auto max-w-[1700px] px-4 md:px-8 xl:px-12">
+      <div className="relative mx-auto max-w-[1560px] px-4 md:px-8 xl:px-12">
         <div className="mb-6 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/38">
           <Link href="/" className="transition-colors hover:text-white/70">
             Home
@@ -263,3 +263,4 @@ const PlayerExperience: React.FC<PlayerExperienceProps> = ({ movie, servers, ini
 };
 
 export default PlayerExperience;
+

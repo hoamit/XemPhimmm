@@ -6,13 +6,12 @@ import MovieCarousel from './MovieCarousel';
 
 const ContinueWatching: React.FC = () => {
   const { history, hydrated } = useMovieStorage();
-
   if (!hydrated || history.length === 0) return null;
 
   return (
-    <MovieCarousel 
-      title="Tiếp tục xem"
-      description="Các tựa bạn vừa mở sẽ nằm lại đây để xem tiếp cho nhanh."
+    <MovieCarousel
+      title="Tiep tuc xem"
+      description="Cac tua ban vua mo se nam lai day de xem tiep cho nhanh."
       movies={history}
     />
   );

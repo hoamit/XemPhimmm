@@ -17,11 +17,11 @@ export async function generateMetadata({ params }: MovieDetailPageProps): Promis
   try {
     const res = await apiClient.getMovieDetail(slug);
     return {
-      title: `${res.movie.name} - XemPhimmm`,
+      title: `${res.movie.name} - PhimHay`,
       description: stripHtml(res.movie.content).slice(0, 160),
     };
   } catch {
-    return { title: 'Movie Detail - XemPhimmm' };
+    return { title: 'Movie Detail - PhimHay' };
   }
 }
 

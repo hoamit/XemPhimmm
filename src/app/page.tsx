@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Hero from '@/components/movie/Hero';
 import MovieCarousel from '@/components/movie/MovieCarousel';
-import ContinueWatching from '@/components/movie/ContinueWatching';
+import ContinueWatchingBoundary from '@/components/movie/ContinueWatchingBoundary';
 import { SkeletonHero } from '@/components/common/Skeleton';
 import { debugWarn } from '@/lib/debug';
 import { HOME_DISCOVER_CARDS, getHomePageData } from '@/lib/catalog';
@@ -20,7 +20,7 @@ export default async function Home() {
   if (!homeData) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 text-center">
-        <h1 className="text-5xl font-semibold text-white">XemPhimmm</h1>
+        <h1 className="text-5xl font-semibold text-white">PhimHay</h1>
         <p className="mt-4 max-w-lg text-white/55">
           Không thể tải được kho phim ở trang chủ lúc này. Hãy thử tải lại sau ít phút.
         </p>
@@ -40,7 +40,7 @@ export default async function Home() {
 
       <div className="relative z-10 -mt-12 space-y-10 md:-mt-20">
         <section className="px-4 md:px-8 xl:px-12">
-          <div className="mx-auto grid max-w-[1700px] gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mx-auto grid max-w-[1560px] gap-4 md:grid-cols-2 xl:grid-cols-4">
             {HOME_DISCOVER_CARDS.map((card) => (
               <Link
                 key={card.title}
@@ -55,7 +55,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <ContinueWatching />
+        <ContinueWatchingBoundary />
 
         <div className="space-y-10">
           {sections.map((section) => (

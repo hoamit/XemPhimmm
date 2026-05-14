@@ -19,11 +19,11 @@ export async function generateMetadata({ params }: PlayerPageProps): Promise<Met
   try {
     const res = await apiClient.getMovieDetail(slug);
     return {
-      title: `Xem ${res.movie.name} - XemPhimmm`,
+      title: `Xem ${res.movie.name} - PhimHay`,
       description: stripHtml(res.movie.content).slice(0, 160),
     };
   } catch {
-    return { title: 'Player - XemPhimmm' };
+    return { title: 'Player - PhimHay' };
   }
 }
 

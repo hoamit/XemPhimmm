@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MovieListItem } from '@/types/movie';
 import MovieCard from './MovieCard';
-import { cn } from '@/lib/utils';
+import { cn, dedupeMovies } from '@/lib/utils';
 
 interface MovieCarouselProps {
   title: string;
@@ -26,6 +26,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const uniqueMovies = useMemo(() => dedupeMovies(movies || []), [movies]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -43,7 +44,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({
       scroller.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
     };
-  }, [movies.length]);
+  }, [uniqueMovies.length]);
 
   const scrollByAmount = (direction: -1 | 1) => {
     const scroller = scrollerRef.current;
@@ -57,17 +58,18 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({
     });
   };
 
-  if (!movies?.length) return null;
+  if (!uniqueMovies.length) return null;
 
   return (
-    <section className="group/section relative space-y-8 py-6">
+    <section className="group/section relative py-6">
       <div
         className={cn(
           'pointer-events-none absolute inset-x-4 top-8 h-32 rounded-full bg-gradient-to-r opacity-20 blur-3xl md:inset-x-8 xl:inset-x-12',
           accent || 'from-white/10 via-transparent to-transparent'
         )}
       />
-      <div className="px-4 md:px-8 xl:px-12">
+
+      <div className="mx-auto max-w-[1560px] px-4 md:px-8 xl:px-12">
         <div className="relative flex items-end justify-between gap-6">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
@@ -95,58 +97,58 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({
             </Link>
           )}
         </div>
-      </div>
 
-      <div className="relative">
-        <AnimatePresence>
-          {canScrollLeft && (
-            <motion.button
-              key="prev-button"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              onClick={() => scrollByAmount(-1)}
-              className="absolute left-0 z-30 hidden h-full w-16 items-center justify-center bg-gradient-to-r from-black/80 to-transparent text-white opacity-0 transition-opacity group-hover/section:opacity-100 md:flex"
-            >
-              <div className="grid size-12 place-items-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-                <ArrowLeft className="size-6" />
-              </div>
-            </motion.button>
-          )}
-
-          {canScrollRight && (
-            <motion.button
-              key="next-button"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              onClick={() => scrollByAmount(1)}
-              className="absolute right-0 z-30 hidden h-full w-16 items-center justify-center bg-gradient-to-l from-black/80 to-transparent text-white opacity-0 transition-opacity group-hover/section:opacity-100 md:flex"
-            >
-              <div className="grid size-12 place-items-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-                <ArrowRight className="size-6" />
-              </div>
-            </motion.button>
-          )}
-        </AnimatePresence>
-
-        <div
-          ref={scrollerRef}
-          className="hide-scrollbar snap-x snap-mandatory overflow-x-auto px-4 md:px-8 xl:px-12"
-        >
-          <div className="flex gap-4 md:gap-6">
-            {movies.map((movie, index) => (
-              <motion.div
-                key={`${movie.slug}-${index}`}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-                className="w-[44vw] min-w-[170px] max-w-[240px] shrink-0 snap-start md:w-[28vw] lg:w-[20vw] xl:w-[16.5vw]"
+        <div className="relative mt-8">
+          <AnimatePresence>
+            {canScrollLeft && (
+              <motion.button
+                key="prev-button"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                onClick={() => scrollByAmount(-1)}
+                className="absolute left-0 z-30 hidden h-full w-16 items-center justify-center bg-gradient-to-r from-black/80 to-transparent text-white opacity-0 transition-opacity group-hover/section:opacity-100 md:flex"
               >
-                <MovieCard movie={movie} priority={index < 6} />
-              </motion.div>
-            ))}
+                <div className="grid size-12 place-items-center rounded-full bg-black/40 border border-white/10 backdrop-blur-md">
+                  <ArrowLeft className="size-6" />
+                </div>
+              </motion.button>
+            )}
+
+            {canScrollRight && (
+              <motion.button
+                key="next-button"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                onClick={() => scrollByAmount(1)}
+                className="absolute right-0 z-30 hidden h-full w-16 items-center justify-center bg-gradient-to-l from-black/80 to-transparent text-white opacity-0 transition-opacity group-hover/section:opacity-100 md:flex"
+              >
+                <div className="grid size-12 place-items-center rounded-full bg-black/40 border border-white/10 backdrop-blur-md">
+                  <ArrowRight className="size-6" />
+                </div>
+              </motion.button>
+            )}
+          </AnimatePresence>
+
+          <div
+            ref={scrollerRef}
+            className="hide-scrollbar snap-x snap-mandatory overflow-x-auto"
+          >
+            <div className="flex gap-4 md:gap-6">
+              {uniqueMovies.map((movie, index) => (
+                <motion.div
+                  key={`${movie.slug}-${index}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05 }}
+                  className="w-[44vw] min-w-[170px] max-w-[240px] shrink-0 snap-start md:w-[28vw] lg:w-[20vw] xl:w-[16.5vw]"
+                >
+                  <MovieCard movie={movie} priority={index < 6} />
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

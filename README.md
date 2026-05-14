@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎬 XemPhimmm
 
-## Getting Started
+Một ứng dụng web xem phim trực tuyến hiện đại, mượt mà với giao diện cao cấp (Premium UX), được phát triển trên nền tảng Next.js (App Router), TypeScript và Tailwind CSS.
 
-First, run the development server:
+## ✨ Tính năng chính
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+-   🚀 **Tốc độ tối ưu**: Tận dụng tối đa sức mạnh của Next.js Server Components và cơ chế caching tối ưu.
+-   🎭 **Giao diện hiện đại**: Thiết kế Dark mode kết hợp Glassmorphism tinh tế, hoạt ảnh mượt mà.
+-   🔍 **Tìm kiếm thông minh**: Kết quả tìm kiếm nhanh chóng và hiển thị trực quan.
+-   📱 **Responsive hoàn hảo**: Trải nghiệm đồng nhất từ desktop cho đến thiết bị di động.
+-   🔀 **Hỗ trợ đa nguồn (Multi-source API)**: Tự động chuyển đổi/phục hồi (Fallback) giữa nhiều nguồn dữ liệu phim để đảm bảo kết nối ổn định.
+-   ⏱️ **Lưu lịch sử xem**: Tính năng "Tiếp tục xem" giúp người dùng dễ dàng quay lại bộ phim yêu thích.
+
+## 🛠️ Công nghệ sử dụng
+
+-   **Framework**: Next.js 14+ (App Router)
+-   **Ngôn ngữ**: TypeScript
+-   **Giao diện**: Tailwind CSS v4
+-   **HTTP Client**: Axios
+-   **Quản lý Trạng thái/Side Effect**: Custom React Hooks
+
+## 📦 Khởi động dự án
+
+Để chạy ứng dụng trên môi trường local, thực hiện các bước sau:
+
+1.  **Cài đặt thư viện**:
+    ```bash
+    npm install
+    ```
+
+2.  **Chạy môi trường Phát triển (Dev server)**:
+    ```bash
+    npm run dev
+    ```
+    Truy cập [http://localhost:3000](http://localhost:3000) để xem kết quả.
+
+3.  **Build Production**:
+    ```bash
+    npm run build
+    npm start
+    ```
+
+## 📁 Cấu trúc dự án
+
+```text
+src/
+├── app/             # Next.js Pages, Layouts & App Routes
+├── components/      # Các React Components phân rã theo nhóm chức năng
+│   ├── common/      # Loading, Skeletons, UI reusable components
+│   ├── layout/      # Header, Footer, Sidebar, v.v.
+│   ├── movie/       # Carousel, Cards, Hero Sections
+│   └── player/      # Custom Video Player
+├── hooks/           # React custom hooks (localStorage, event listeners)
+├── lib/             # Thư viện tiện ích, Cấu hình API Client
+└── types/           # Định nghĩa kiểu TypeScript cho Movie, Category, v.v.
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

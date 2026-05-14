@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useRef } from 'react';
 import Link from 'next/link';
@@ -49,7 +49,7 @@ const Hero: React.FC<HeroProps> = ({ movie }) => {
 
       <motion.div 
         style={{ opacity }}
-        className="relative z-10 mx-auto flex min-h-[95vh] max-w-[1700px] flex-col justify-end px-4 pb-20 pt-32 md:px-8 lg:px-12 lg:pb-24"
+        className="relative z-10 mx-auto flex min-h-[95vh] max-w-[1560px] flex-col justify-end px-4 pb-20 pt-32 md:px-8 lg:px-12 lg:pb-24"
       >
         <div className="max-w-4xl space-y-8">
           <motion.div
@@ -117,3 +117,4 @@ const Hero: React.FC<HeroProps> = ({ movie }) => {
 };
 
 export default Hero;
+

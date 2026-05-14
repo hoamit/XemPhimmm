@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Menu, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NAV_LINKS } from '@/lib/catalog';
@@ -24,21 +25,22 @@ const Navbar: React.FC = () => {
       <header className="fixed inset-x-0 top-0 z-50">
         <nav
           className={cn(
-            'mx-auto flex w-full max-w-[1720px] items-center justify-between px-4 py-3 transition-all duration-500 md:px-8 md:py-4',
+            'mx-auto flex w-full max-w-[1560px] items-center justify-between px-4 py-3 transition-all duration-500 md:px-8 md:py-4',
             isScrolled
               ? 'border-b border-white/8 bg-black/80 shadow-[0_4px_30px_rgba(0,0,0,0.3)] backdrop-blur-2xl'
               : 'border-b border-transparent bg-gradient-to-b from-black/60 to-transparent'
           )}
         >
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="grid size-11 place-items-center rounded-2xl bg-[linear-gradient(145deg,#ff5b61_0%,#cc1021_100%)] shadow-[0_16px_32px_rgba(205,16,33,0.35)]">
-                <span className="font-display text-lg font-black text-white">XP</span>
-              </div>
-              <div className="hidden sm:block">
-                <p className="font-display text-xl font-bold tracking-tight text-white">XemPhimmm</p>
-                <p className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold">Streaming rebuilt</p>
-              </div>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/phimhay-logo-crop.png"
+                alt="PhimHay"
+                width={260}
+                height={76}
+                priority
+                className="h-12 w-auto sm:h-[58px]"
+              />
             </Link>
 
             <div className="hidden items-center gap-2 xl:flex">
@@ -83,7 +85,7 @@ const Navbar: React.FC = () => {
 
         <div
           className={cn(
-            'mx-auto mt-3 w-full max-w-[1720px] overflow-hidden rounded-[1.7rem] border border-white/8 bg-black/72 backdrop-blur-2xl transition-all duration-300 xl:hidden',
+            'mx-auto mt-3 w-full max-w-[1560px] overflow-hidden rounded-[1.7rem] border border-white/8 bg-black/72 backdrop-blur-2xl transition-all duration-300 xl:hidden',
             isMobileMenuOpen ? 'max-h-[460px] opacity-100' : 'max-h-0 border-transparent opacity-0'
           )}
         >
@@ -109,3 +111,4 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
+

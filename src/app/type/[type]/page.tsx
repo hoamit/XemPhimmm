@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: TypePageProps): Promise<Metad
   const config = getTypeConfig(type);
 
   return {
-    title: `${config.label} - XemPhimmm`,
+    title: `${config.label} - PhimHay`,
     description: config.description,
   };
 }
@@ -54,7 +54,7 @@ export default async function TypePage({ params, searchParams }: TypePageProps) 
 
   return (
     <div className="min-h-screen pb-20 pt-28">
-      <div className="mx-auto max-w-[1700px] space-y-8 px-4 md:px-8 xl:px-12">
+      <div className="mx-auto max-w-[1560px] space-y-8 px-4 md:px-8 xl:px-12">
         <section className="relative overflow-hidden rounded-[2.2rem] border border-white/8 bg-white/[0.035] p-6 md:p-8">
           <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${config.accent}`} />
 

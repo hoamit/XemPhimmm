@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -249,9 +249,9 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose }) => {
 
               <div className="hidden space-y-8 md:block">
                 <div className="rounded-[2.5rem] border border-white/5 bg-[linear-gradient(135deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0)_100%)] p-8">
-                  <h3 className="text-xl font-bold text-white">XemPhimmm Search</h3>
+                  <h3 className="text-xl font-bold text-white">PhimHay Search</h3>
                   <p className="mt-4 text-sm leading-relaxed text-white/40">
-                    Tìm kiếm thông minh hơn trên toàn bộ các nguồn phim KKPhim, OPhim và PhimAPI.
+                    Tìm kiếm thông minh hơn trên kho phim đồng bộ theo tài liệu API KKPhim.
                     Nhấn <strong>Enter</strong> để xem đầy đủ kết quả tìm kiếm.
                   </p>
                   <div className="mt-8 grid grid-cols-2 gap-4">
@@ -260,8 +260,8 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose }) => {
                       <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">Đầu phim</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-2xl font-bold text-white">Lumi</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">Tìm kiếm</p>
+                      <p className="text-2xl font-bold text-white">Live API</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">Đồng bộ</p>
                     </div>
                   </div>
                 </div>
@@ -275,3 +275,4 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose }) => {
 };
 
 export default SearchOverlay;
+

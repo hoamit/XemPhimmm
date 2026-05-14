@@ -38,7 +38,14 @@ const COUNTRIES = [
   { label: 'Việt Nam', value: 'viet-nam' },
 ];
 
-const YEARS = [{ label: 'Năm phát hành', value: '' }, ...Array.from({ length: 15 }, (_, i) => ({ label: String(2025 - i), value: String(2025 - i) }))];
+const currentYear = new Date().getFullYear();
+const YEARS = [
+  { label: 'Năm phát hành', value: '' },
+  ...Array.from({ length: 20 }, (_, i) => {
+    const year = currentYear - i;
+    return { label: String(year), value: String(year) };
+  }),
+];
 
 const LANGUAGES = [
   { label: 'Ngôn Ngữ', value: '' },

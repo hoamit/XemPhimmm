@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -46,7 +46,7 @@ export default function MovieDetailView({ movie, episodes, relatedMovies }: Movi
 
         <div className="animate-mesh absolute inset-0 z-0 opacity-10" />
 
-        <div className="relative z-10 mx-auto max-w-[1700px] px-4 pb-16 pt-32 md:px-8 xl:px-12">
+        <div className="relative z-10 mx-auto max-w-[1560px] px-4 pb-16 pt-32 md:px-8 xl:px-12">
           <div className="grid gap-12 xl:grid-cols-[380px_minmax(0,1fr)]">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -133,7 +133,7 @@ export default function MovieDetailView({ movie, episodes, relatedMovies }: Movi
       </section>
 
       <div className="relative z-20 space-y-12 px-4 md:px-8 xl:px-12">
-        <div className="mx-auto grid max-w-[1700px] gap-8 xl:grid-cols-[1fr_400px]">
+        <div className="mx-auto grid max-w-[1560px] gap-8 xl:grid-cols-[1fr_400px]">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -245,7 +245,7 @@ export default function MovieDetailView({ movie, episodes, relatedMovies }: Movi
                 </div>
                 <h3 className="text-xl font-display font-black text-white">Trải nghiệm tuyệt vời hơn</h3>
                 <p className="text-sm font-medium leading-relaxed text-white/50">
-                  Đăng ký nhận thông báo để không bỏ lỡ các tập mới nhất của bộ phim này. XemPhimmm luôn cập nhật nội dung nhanh nhất cho bạn.
+                  Đăng ký nhận thông báo để không bỏ lỡ các tập mới nhất của bộ phim này. PhimHay luôn cập nhật nội dung nhanh nhất cho bạn.
                 </p>
                 <button className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 text-xs font-black uppercase tracking-widest text-white transition-colors hover:bg-white/10">
                   Nhận thông báo
@@ -267,3 +267,5 @@ export default function MovieDetailView({ movie, episodes, relatedMovies }: Movi
     </div>
   );
 }
+
+

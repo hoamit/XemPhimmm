@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { AlertTriangle, Maximize, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AlertTriangle, Maximize, Pause, Play, RotateCcw, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import { debugWarn } from '@/lib/debug';
 import { cn } from '@/lib/utils';
 
@@ -18,11 +17,39 @@ function isAbortError(error: unknown) {
   return error instanceof Error && error.name === 'AbortError';
 }
 
+function isHlsUrl(value: string) {
+  return /\.m3u8($|\?)/i.test(value);
+}
+
+function resolvePlayableUrl(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return '';
+  }
+
+  if (isHlsUrl(normalized)) {
+    return normalized;
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    const nestedUrl = parsed.searchParams.get('url') || parsed.searchParams.get('source') || '';
+    if (nestedUrl && isHlsUrl(nestedUrl)) {
+      return nestedUrl;
+    }
+  } catch {
+    return normalized;
+  }
+
+  return normalized;
+}
+
 function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPlayerProps & { onRetry: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastVolumeRef = useRef(1);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -37,10 +64,24 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
   const [qualityLevels, setQualityLevels] = useState<{ index: number; label: string }[]>([]);
   const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 is Auto
   const hlsRef = useRef<Hls | null>(null);
+  const playableUrl = useMemo(() => resolvePlayableUrl(url), [url]);
+  const hasSourceError = !playableUrl;
+
+  useEffect(() => {
+    if (!hasSourceError) {
+      return;
+    }
+
+    onError?.({ type: 'EMPTY_SOURCE' });
+  }, [hasSourceError, onError]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) {
+      return;
+    }
+
+    if (hasSourceError) {
       return;
     }
 
@@ -75,7 +116,7 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
       }
     }, 15000);
 
-    if (Hls.isSupported()) {
+    if (Hls.isSupported() && isHlsUrl(playableUrl)) {
       hls = new Hls({
         capLevelToPlayerSize: true,
         autoStartLoad: true,
@@ -84,7 +125,7 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
         enableWorker: true,
       });
 
-      hls.loadSource(url);
+      hls.loadSource(playableUrl);
       hls.attachMedia(video);
       hlsRef.current = hls;
 
@@ -138,8 +179,11 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
             break;
         }
       });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url;
+    } else if (isHlsUrl(playableUrl) && video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = playableUrl;
+      video.load();
+    } else if (!isHlsUrl(playableUrl)) {
+      video.src = playableUrl;
       video.load();
     } else {
       didError = true;
@@ -186,7 +230,7 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleNativeError);
     };
-  }, [onEnded, onError, url]);
+  }, [hasSourceError, onEnded, onError, playableUrl]);
 
   const togglePlay = async () => {
     const video = videoRef.current;
@@ -215,6 +259,17 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
     }
   };
 
+  const handleSeekBy = (offsetInSeconds: number) => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(duration) || duration <= 0) {
+      return;
+    }
+
+    const nextTime = Math.min(Math.max(video.currentTime + offsetInSeconds, 0), duration);
+    video.currentTime = nextTime;
+    setCurrentTime(nextTime);
+  };
+
   const toggleMute = () => {
     if (!videoRef.current) {
       return;
@@ -222,6 +277,11 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
 
     const nextMuted = !isMuted;
     videoRef.current.muted = nextMuted;
+    if (!nextMuted && volume === 0) {
+      const restoredVolume = lastVolumeRef.current > 0 ? lastVolumeRef.current : 0.8;
+      videoRef.current.volume = restoredVolume;
+      setVolume(restoredVolume);
+    }
     setIsMuted(nextMuted);
   };
 
@@ -233,6 +293,9 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
 
     videoRef.current.volume = value;
     videoRef.current.muted = value === 0;
+    if (value > 0) {
+      lastVolumeRef.current = value;
+    }
     setVolume(value);
     setIsMuted(value === 0);
   };
@@ -316,18 +379,20 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
             void togglePlay();
           }}
         >
-          {isLoading && !isError ? (
+          {isLoading && !isError && !hasSourceError ? (
             <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           ) : null}
 
-          {isError ? (
+          {isError || hasSourceError ? (
             <div className="pointer-events-auto rounded-[1.7rem] border border-primary/20 bg-black/88 p-8 text-center" onClick={(e) => e.stopPropagation()}>
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-primary/30 bg-primary/20">
                 <AlertTriangle className="size-8 text-primary" />
               </div>
               <p className="text-xl font-black text-white">Ối! Lỗi nguồn phát</p>
               <p className="mx-auto mt-2 max-w-[240px] text-sm leading-6 text-white/55">
-                {errorDetails || 'Không thể tải được phim, hãy thử đổi server khác.'}
+                {hasSourceError
+                  ? 'Không tìm thấy nguồn phát hợp lệ.'
+                  : errorDetails || 'Không thể tải được phim, hãy thử đổi server khác.'}
               </p>
               <button type="button" onClick={onRetry} className="btn-primary mt-6 w-full py-2.5 text-sm">
                 <RotateCcw className="size-4" />
@@ -362,24 +427,43 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
 
           <div className="flex items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <button type="button" onClick={() => void togglePlay()} className="text-white transition-colors hover:text-primary">
-                {isPlaying ? <Pause className="size-7 fill-current" /> : <Play className="size-7 fill-current" />}
-              </button>
-
-              <div className="group/volume relative flex items-center gap-2">
-                <button type="button" onClick={toggleMute} className="text-white transition-colors hover:text-primary">
-                  {isMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+                <button type="button" onClick={() => void togglePlay()} className="text-white transition-colors hover:text-primary">
+                  {isPlaying ? <Pause className="size-7 fill-current" /> : <Play className="size-7 fill-current" />}
                 </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolumeChange}
-                  className="player-volume-slider h-1 w-0 accent-white transition-all duration-300 group-hover/volume:w-24"
-                />
-              </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleSeekBy(-10)}
+                  className="text-white transition-colors hover:text-primary"
+                  aria-label="Tua lùi 10 giây"
+                >
+                  <SkipBack className="size-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSeekBy(10)}
+                  className="text-white transition-colors hover:text-primary"
+                  aria-label="Tua tới 10 giây"
+                >
+                  <SkipForward className="size-5" />
+                </button>
+
+                <div className="group/volume relative flex items-center gap-2">
+                  <button type="button" onClick={toggleMute} className="text-white transition-colors hover:text-primary">
+                    {isMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    className="player-volume-slider h-1 w-14 cursor-pointer accent-white transition-all duration-300 group-hover/volume:w-24"
+                    aria-label="Âm lượng"
+                  />
+                </div>
 
               <div className="text-sm font-medium text-white/85">
                 {formatTime(currentTime)} / {formatTime(duration)}

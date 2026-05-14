@@ -1,11 +1,11 @@
-import React from 'react';
+﻿import React from 'react';
 import { SkeletonHero, SkeletonCard } from '@/components/common/Skeleton';
 
 export default function Loading() {
   return (
     <div className="min-h-screen bg-background">
       <SkeletonHero />
-      <div className="mx-auto max-w-[1700px] space-y-16 px-4 py-12 md:px-8 xl:px-12">
+      <div className="mx-auto max-w-[1560px] space-y-16 px-4 py-12 md:px-8 xl:px-12">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="space-y-6">
             <div className="h-8 w-56 animate-pulse rounded-full bg-white/5" />
@@ -20,3 +20,4 @@ export default function Loading() {
     </div>
   );
 }
+

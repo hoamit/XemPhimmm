@@ -2,24 +2,20 @@ import axios, { AxiosRequestConfig } from 'axios';
 import { debugLogOnce } from '@/lib/debug';
 import {
   ApiMovieLike,
-  normalizeEpisodes,
   normalizeMovie,
+  normalizeEpisodes,
   normalizeMovieDetail,
   resolveImageBase,
 } from '@/lib/movie';
 import { dedupeMovies, stripHtml } from '@/lib/utils';
 import { MovieDetailResponse, MovieListResponse } from '@/types/movie';
 
-const SOURCES = [
-  'https://phimapi.com',
-  'https://ophim1.com',
-  'https://kkphim.com',
-] as const;
-
 const DEFAULT_TIMEOUT = 20000;
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_LIST_LIMIT = 24;
 
 type RequestParams = Record<string, string | number | undefined>;
+type SourceKey = 'phimapi' | 'vsmov';
 
 interface FetchOptions extends Omit<AxiosRequestConfig, 'baseURL' | 'url' | 'params'> {
   params?: RequestParams;
@@ -48,6 +44,120 @@ interface RawMovieDetailPayload {
   pathImage?: string;
   data?: RawMovieDetailPayload;
 }
+
+interface SourceRequest {
+  endpoint: string;
+  params?: RequestParams;
+}
+
+interface MovieSourceProfile {
+  key: SourceKey;
+  baseUrl: string;
+  buildLatestRequest: (page: number) => SourceRequest;
+  buildListRequest: (resolvedType: string, page: number, params: RequestParams) => SourceRequest;
+  buildSearchRequest: (keyword: string, limit: number, page: number) => SourceRequest;
+  buildDetailRequest: (slug: string) => SourceRequest;
+}
+
+const FILTER_TYPE_ALIASES: Record<string, string> = {
+  'phim-bo': 'phim-bo',
+  series: 'phim-bo',
+  'phim-le': 'phim-le',
+  single: 'phim-le',
+  'hoat-hinh': 'hoat-hinh',
+  anime: 'hoat-hinh',
+  animation: 'hoat-hinh',
+  'tv-shows': 'tv-shows',
+  tvshows: 'tv-shows',
+  'tv-show': 'tv-shows',
+};
+
+const SOURCE_PROFILES: ReadonlyArray<MovieSourceProfile> = [
+  {
+    key: 'phimapi',
+    baseUrl: 'https://phimapi.com',
+    buildLatestRequest: (page) => ({
+      endpoint: '/danh-sach/phim-moi-cap-nhat',
+      params: { page },
+    }),
+    buildListRequest: (resolvedType, page, params) => ({
+      endpoint: `/v1/api/danh-sach/${resolvedType}`,
+      params: {
+        ...params,
+        page,
+      },
+    }),
+    buildSearchRequest: (keyword, limit, page) => ({
+      endpoint: '/v1/api/tim-kiem',
+      params: { keyword, limit, page },
+    }),
+    buildDetailRequest: (slug) => ({
+      endpoint: `/phim/${slug}`,
+    }),
+  },
+  {
+    key: 'vsmov',
+    baseUrl: 'https://vsmov.com',
+    buildLatestRequest: (page) => ({
+      endpoint: '/api/danh-sach/phim-moi-cap-nhat',
+      params: { page },
+    }),
+    buildListRequest: (resolvedType, page, params) => {
+      const requestParams: RequestParams = {
+        ...params,
+        page,
+      };
+
+      if (typeof requestParams.sort_field === 'string' && requestParams.sort_field.trim()) {
+        requestParams.sort = requestParams.sort_field;
+      }
+
+      if (typeof requestParams.sort_lang === 'string' && requestParams.sort_lang.trim()) {
+        requestParams.lang = requestParams.sort_lang;
+      }
+
+      delete requestParams.sort_field;
+      delete requestParams.sort_type;
+      delete requestParams.sort_lang;
+
+      switch (resolvedType) {
+        case 'phim-bo':
+          requestParams.type = 'series';
+          break;
+        case 'phim-le':
+          requestParams.type = 'single';
+          break;
+        case 'hoat-hinh':
+          requestParams.type = 'single';
+          if (typeof requestParams.category !== 'string' || !requestParams.category.trim()) {
+            requestParams.category = 'hoat-hinh';
+          }
+          break;
+        case 'tv-shows':
+          requestParams.type = 'single';
+          if (typeof requestParams.category !== 'string' || !requestParams.category.trim()) {
+            requestParams.category = 'chuong-trinh-truyen-hinh';
+          }
+          break;
+        default:
+          requestParams.type = resolvedType;
+          break;
+      }
+
+      return {
+        endpoint: '/api/danh-sach',
+        params: requestParams,
+      };
+    },
+    buildSearchRequest: (keyword, limit, page) => ({
+      endpoint: '/api/tim-kiem',
+      params: { keyword, limit, page },
+    }),
+    buildDetailRequest: (slug) => ({
+      endpoint: `/api/phim/${slug}`,
+    }),
+  },
+];
 
 class ApiClient {
   private responseCache = new Map<string, { expiresAt: number; data: unknown }>();
@@ -113,41 +223,62 @@ class ApiClient {
     });
   }
 
-  private async fetchWithFallback<T>(endpoint: string, options: FetchOptions = {}) {
-    const params = this.sanitizeParams(options.params);
+  private async fetchFromSource<T>(
+    source: MovieSourceProfile,
+    request: SourceRequest,
+    options: FetchOptions = {}
+  ) {
+    const params = this.sanitizeParams({
+      ...(request.params || {}),
+      ...(options.params || {}),
+    });
     const cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
-    const cacheKey = this.buildCacheKey(endpoint, params);
+    const cacheKey = `${source.key}:${this.buildCacheKey(request.endpoint, params)}`;
     const cached = this.getCached<T>(cacheKey);
 
     if (cached) {
       return cached;
     }
 
-    let lastError: unknown = null;
+    const response = await axios.get<T>(`${source.baseUrl}${request.endpoint}`, {
+      ...options,
+      params,
+      proxy: false,
+      timeout: options.timeout ?? DEFAULT_TIMEOUT,
+      headers: {
+        Accept: 'application/json',
+        ...(options.headers || {}),
+      },
+    });
 
-    for (const baseUrl of SOURCES) {
-      try {
-        const response = await axios.get<T>(`${baseUrl}${endpoint}`, {
-          ...options,
-          params,
-          proxy: false,
-          timeout: options.timeout ?? DEFAULT_TIMEOUT,
-          headers: {
-            Accept: 'application/json',
-            ...(options.headers || {}),
-          },
-        });
+    if (!response.data) {
+      throw new Error(`Empty payload from ${source.key}`);
+    }
 
-        if (response.data) {
-          this.setCached(cacheKey, response.data, cacheTtlMs);
-          return response.data;
-        }
-      } catch (error) {
-        lastError = error;
+    this.setCached(cacheKey, response.data, cacheTtlMs);
+    return response.data;
+  }
+
+  private async fetchFromAllSources<T>(
+    requestBuilder: (source: MovieSourceProfile) => SourceRequest,
+    options: FetchOptions = {}
+  ) {
+    const results = await Promise.allSettled(
+      SOURCE_PROFILES.map(async (source) => ({
+        source,
+        payload: await this.fetchFromSource<T>(source, requestBuilder(source), options),
+      }))
+    );
+
+    const successful: Array<{ source: MovieSourceProfile; payload: T }> = [];
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        successful.push(result.value);
       }
     }
 
-    throw lastError || new Error('All movie sources failed');
+    return successful;
   }
 
   private normalizeMovieList(response?: RawMovieListPayload | null): MovieListResponse {
@@ -186,95 +317,134 @@ class ApiClient {
     };
   }
 
-  private async fetchPaginatedList(
-    endpoint: string,
+  private resolveListType(type: string) {
+    const normalizedType = type.trim().toLowerCase();
+    return FILTER_TYPE_ALIASES[normalizedType] || normalizedType || 'phim-bo';
+  }
+
+  private normalizeListParams(extraParams: RequestParams = {}) {
+    const params = this.sanitizeParams(extraParams);
+    const normalized: RequestParams = { ...params };
+
+    delete normalized.page;
+    delete normalized.type;
+
+    const explicitSortField =
+      typeof params.sort_field === 'string' && params.sort_field.trim() ? params.sort_field.trim() : '';
+    const sortField =
+      explicitSortField ||
+      (typeof params.sort === 'string' && params.sort.trim() ? params.sort.trim() : '');
+    if (sortField) {
+      normalized.sort_field = sortField;
+      normalized.sort_type =
+        typeof params.sort_type === 'string' && params.sort_type.trim() ? params.sort_type.trim() : 'desc';
+    }
+
+    const explicitSortLang =
+      typeof params.sort_lang === 'string' && params.sort_lang.trim() ? params.sort_lang.trim() : '';
+    const langValue = typeof params.lang === 'string' && params.lang.trim() ? params.lang.trim() : '';
+    const sortLang = explicitSortLang || langValue;
+    if (sortLang) {
+      normalized.sort_lang = sortLang;
+    }
+
+    if (typeof normalized.limit !== 'number' && typeof normalized.limit !== 'string') {
+      normalized.limit = DEFAULT_LIST_LIMIT;
+    }
+
+    delete normalized.sort;
+    delete normalized.lang;
+
+    return this.sanitizeParams(normalized);
+  }
+
+  private async fetchPaginatedListAcrossSources(
+    requestBuilder: (source: MovieSourceProfile, page: number) => SourceRequest,
     page: number,
-    _fetchCount: number,
-    extraParams: RequestParams = {}
+    fetchCount: number
   ): Promise<MovieListResponse> {
-    const results = await Promise.allSettled(
-      SOURCES.map((baseUrl) =>
-        axios.get<RawMovieListPayload>(`${baseUrl}${endpoint}`, {
-          params: this.sanitizeParams({ page, ...extraParams }),
-          proxy: false,
-          timeout: DEFAULT_TIMEOUT,
-          headers: { Accept: 'application/json' },
-        })
+    const totalRequests = Math.max(1, Math.min(fetchCount || 1, 5));
+    const pageNumbers = Array.from({ length: totalRequests }, (_, index) => page + index);
+    const responsesByPage = await Promise.all(
+      pageNumbers.map((targetPage) =>
+        this.fetchFromAllSources<RawMovieListPayload>((source) => requestBuilder(source, targetPage))
       )
     );
 
-    const successful = results
-      .filter(
-        (result): result is PromiseFulfilledResult<import('axios').AxiosResponse<RawMovieListPayload>> =>
-          result.status === 'fulfilled'
-      )
-      .map((result, index) => {
-        this.logPayloadShape(`${endpoint}:${index}`, result.value.data);
-        return this.normalizeMovieList(result.value.data);
-      });
+    const normalizedResponses: MovieListResponse[] = [];
 
-    if (successful.length === 0) {
+    responsesByPage.forEach((responses, pageIndex) => {
+      const targetPage = pageNumbers[pageIndex];
+
+      responses.forEach(({ source, payload }) => {
+        const request = requestBuilder(source, targetPage);
+        this.logPayloadShape(`${source.key}:${request.endpoint}:page-${targetPage}`, payload);
+        normalizedResponses.push(this.normalizeMovieList(payload));
+      });
+    });
+
+    if (!normalizedResponses.length) {
       throw new Error('Unable to fetch movies from any source');
     }
 
-    const primary = successful[0];
-    const allItems = successful.flatMap((result) => result.items);
-    const totalItems = successful.reduce((acc, result) => acc + (result.pagination?.totalItems || 0), 0);
-    const totalPages = Math.max(...successful.map((result) => result.pagination?.totalPages || 0));
+    const primary = normalizedResponses[0];
+    const mergedItems = dedupeMovies(normalizedResponses.flatMap((response) => response.items));
+    const totalPages = Math.max(...normalizedResponses.map((response) => response.pagination?.totalPages || 1));
+    const totalItems = Math.max(...normalizedResponses.map((response) => response.pagination?.totalItems || 0));
+    const perPage = Math.max(
+      ...normalizedResponses.map((response) => response.pagination?.totalItemsPerPage || 0),
+      DEFAULT_LIST_LIMIT
+    );
 
     return {
       ...primary,
-      items: dedupeMovies(allItems),
+      status: true,
+      items: mergedItems,
       pagination: {
         ...primary.pagination,
-        totalItems,
+        totalItems: totalItems || mergedItems.length,
+        totalItemsPerPage: perPage,
         totalPages,
         currentPage: page,
       },
     };
   }
 
-  private async fetchFromAllSources<T>(endpoint: string, options: FetchOptions = {}) {
-    const results = await Promise.allSettled(
-      SOURCES.map((baseUrl) =>
-        axios.get<T>(`${baseUrl}${endpoint}`, {
-          ...options,
-          params: this.sanitizeParams(options.params),
-          proxy: false,
-          timeout: options.timeout ?? DEFAULT_TIMEOUT,
-          headers: {
-            Accept: 'application/json',
-            ...(options.headers || {}),
-          },
-        })
-      )
-    );
-
-    return results
-      .filter((result): result is PromiseFulfilledResult<import('axios').AxiosResponse<T>> => result.status === 'fulfilled')
-      .map((result) => result.value.data);
-  }
-
   async getLatestMovies(page = 1, fetchCount = 1) {
-    return this.fetchPaginatedList('/danh-sach/phim-moi-cap-nhat', page, fetchCount);
+    return this.fetchPaginatedListAcrossSources(
+      (source, targetPage) => source.buildLatestRequest(targetPage),
+      page,
+      fetchCount
+    );
   }
 
   async getMovieDetail(slug: string): Promise<MovieDetailResponse> {
-    const response = await this.fetchWithFallback<RawMovieDetailPayload>(`/phim/${slug}`);
-    this.logPayloadShape(`/phim/${slug}`, response);
+    let lastError: unknown = null;
 
-    const payload = response.data || response || {};
-    const imageBase = resolveImageBase(
-      payload.domain_image,
-      payload.APP_DOMAIN_CDN_IMAGE,
-      payload.pathImage
-    );
+    for (const source of SOURCE_PROFILES) {
+      try {
+        const request = source.buildDetailRequest(slug);
+        const response = await this.fetchFromSource<RawMovieDetailPayload>(source, request);
+        this.logPayloadShape(`${source.key}:${request.endpoint}`, response);
 
-    return {
-      status: Boolean(payload.status ?? true),
-      movie: normalizeMovieDetail(payload.movie || {}, imageBase),
-      episodes: normalizeEpisodes(payload.episodes),
-    };
+        const payload = response.data || response || {};
+        const imageBase = resolveImageBase(
+          payload.domain_image,
+          payload.APP_DOMAIN_CDN_IMAGE,
+          payload.pathImage
+        );
+
+        return {
+          status: Boolean(payload.status ?? true),
+          movie: normalizeMovieDetail(payload.movie || {}, imageBase),
+          episodes: normalizeEpisodes(payload.episodes),
+        };
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error('Unable to fetch movie detail from any source');
   }
 
   async getMoviesByFilter(
@@ -283,7 +453,14 @@ class ApiClient {
     fetchCount: number = 1,
     extraParams: RequestParams = {}
   ) {
-    return this.fetchPaginatedList(`/v1/api/danh-sach/${type}`, page, fetchCount, extraParams);
+    const resolvedType = this.resolveListType(type);
+    const normalizedParams = this.normalizeListParams(extraParams);
+
+    return this.fetchPaginatedListAcrossSources(
+      (source, targetPage) => source.buildListRequest(resolvedType, targetPage, normalizedParams),
+      page,
+      fetchCount
+    );
   }
 
   async searchMovies(keyword: string, limit: number = 48, page: number = 1) {
@@ -293,30 +470,39 @@ class ApiClient {
       return { status: true, items: [] } as MovieListResponse;
     }
 
-    const payloads = await this.fetchFromAllSources<RawMovieListPayload>('/v1/api/tim-kiem', {
-      params: { keyword: trimmedKeyword, limit, page },
-      cacheTtlMs: 60 * 1000,
-    });
+    const responses = await this.fetchFromAllSources<RawMovieListPayload>(
+      (source) => source.buildSearchRequest(trimmedKeyword, limit, page),
+      {
+        cacheTtlMs: 60 * 1000,
+      }
+    );
 
-    if (payloads.length === 0) {
+    if (!responses.length) {
       return { status: true, items: [] } as MovieListResponse;
     }
 
-    payloads.forEach((payload, index) => this.logPayloadShape(`/v1/api/tim-kiem:${index}`, payload));
+    const normalizedResponses = responses.map(({ source, payload }) => {
+      const request = source.buildSearchRequest(trimmedKeyword, limit, page);
+      this.logPayloadShape(`${source.key}:${request.endpoint}`, payload);
+      return this.normalizeMovieList(payload);
+    });
 
-    const responses = payloads.map((payload) => this.normalizeMovieList(payload));
-    const mergedItems = dedupeMovies(responses.flatMap((response) => response.items));
-    const totalItems = responses.reduce((acc, response) => acc + (response.pagination?.totalItems || 0), 0);
-    const totalPages = Math.max(...responses.map((response) => response.pagination?.totalPages || 0));
+    const mergedItems = dedupeMovies(normalizedResponses.flatMap((response) => response.items));
+    const totalPages = Math.max(...normalizedResponses.map((response) => response.pagination?.totalPages || 1));
+    const totalItems = Math.max(...normalizedResponses.map((response) => response.pagination?.totalItems || 0));
+    const totalItemsPerPage = Math.max(
+      ...normalizedResponses.map((response) => response.pagination?.totalItemsPerPage || 0),
+      limit
+    );
 
     return {
       status: true,
       items: mergedItems,
       pagination: {
-        totalItems,
+        totalItems: totalItems || mergedItems.length,
         totalPages,
         currentPage: page,
-        totalItemsPerPage: limit,
+        totalItemsPerPage,
       },
     } as MovieListResponse;
   }

@@ -16,11 +16,6 @@ const HOST_ALIASES = new Map<string, string>([
   ['media.cdn.phimapi.com', 'phimimg.com'],
 ]);
 
-// Helper to check if a hostname is a known movie image source
-function isMovieImageHost(hostname: string) {
-  return hostname.includes('phimimg');
-}
-
 export type ApiMovieLike = Partial<MovieListItem> &
   Partial<MovieDetail> & {
     title?: string | null;

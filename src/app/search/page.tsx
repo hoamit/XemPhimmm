@@ -5,6 +5,7 @@ import SearchShell from '@/components/search/SearchShell';
 import { Search } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { debugWarn } from '@/lib/debug';
+import { dedupeMoviesByFranchise } from '@/lib/utils';
 import { MovieListResponse } from '@/types/movie';
 import { Metadata } from 'next';
 
@@ -19,8 +20,8 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   const { q } = await searchParams;
 
   return {
-    title: q ? `Tìm "${q}" - XemPhimmm` : 'Tìm kiếm phim - XemPhimmm',
-    description: q ? `Kết quả tìm kiếm cho ${q} trên XemPhimmm.` : 'Tìm kiếm phim, diễn viên và nội dung yêu thích trên XemPhimmm.',
+    title: q ? `Tìm "${q}" - PhimHay` : 'Tìm kiếm phim - PhimHay',
+    description: q ? `Kết quả tìm kiếm cho ${q} trên PhimHay.` : 'Tìm kiếm phim, diễn viên và nội dung yêu thích trên PhimHay.',
   };
 }
 
@@ -51,13 +52,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     );
   }
 
+  const uniqueSearchItems = dedupeMoviesByFranchise(searchResults.items);
+  const uniqueDiscoveryItems = dedupeMoviesByFranchise(discovery.items);
+  const searchPageSize = Math.max(1, Number(searchResults.pagination?.totalItemsPerPage || 36));
+  const displaySearchItems = uniqueSearchItems.slice(0, searchPageSize);
+
   return (
     <div className="min-h-screen pb-20 pt-28">
-      <div className="mx-auto max-w-[1700px] space-y-8 px-4 md:px-8 xl:px-12">
+      <div className="mx-auto max-w-[1560px] space-y-8 px-4 md:px-8 xl:px-12">
         <SearchShell initialQuery={query} resultCount={searchResults.pagination?.totalItems || searchResults.items.length} />
 
         {query ? (
-          searchResults.items.length ? (
+          displaySearchItems.length ? (
             <section className="space-y-8">
               <div className="flex flex-col gap-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/35">Kết quả tìm kiếm</p>
@@ -74,7 +80,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               </div>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-                {searchResults.items.map((movie, index) => (
+                {displaySearchItems.map((movie, index) => (
                   <MovieCard key={movie.slug} movie={movie} priority={index < 6} />
                 ))}
               </div>
@@ -106,7 +112,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 ? 'Nếu chưa thấy phim hợp ý, thử xem nhanh các title mới vừa cập nhật.'
                 : 'Một dải title mới để bạn bắt đầu khám phá ngay từ trang tìm kiếm.'
             }
-            movies={discovery.items.slice(0, 18)}
+            movies={uniqueDiscoveryItems.slice(0, 18)}
             href="/"
             accent="from-amber-300/30 via-rose-300/10 to-transparent"
           />
@@ -115,3 +121,5 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     </div>
   );
 }
+
+
