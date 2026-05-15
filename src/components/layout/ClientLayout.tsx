@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Footer from './Footer';
 import Navbar from './Navbar';
 import { MovieStorageProvider } from '@/hooks/useMovieStorage';
@@ -13,16 +13,15 @@ interface ClientLayoutProps {
 
 function AnimatedShell({ children }: ClientLayoutProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return (
     <AnimatePresence mode="wait">
       <motion.main
-        key={`${pathname}-${searchParams.toString()}`}
+        key={pathname}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}

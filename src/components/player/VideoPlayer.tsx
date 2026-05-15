@@ -285,19 +285,28 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
     setIsMuted(nextMuted);
   };
 
-  const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(event.target.value);
-    if (!videoRef.current) {
+  const setVideoVolume = (nextVolume: number) => {
+    const video = videoRef.current;
+    if (!video) {
       return;
     }
 
-    videoRef.current.volume = value;
-    videoRef.current.muted = value === 0;
-    if (value > 0) {
-      lastVolumeRef.current = value;
+    const clampedVolume = Math.min(Math.max(nextVolume, 0), 1);
+    const nextMuted = clampedVolume === 0;
+
+    video.volume = clampedVolume;
+    video.muted = nextMuted;
+
+    if (clampedVolume > 0) {
+      lastVolumeRef.current = clampedVolume;
     }
-    setVolume(value);
-    setIsMuted(value === 0);
+
+    setVolume(clampedVolume);
+    setIsMuted(nextMuted);
+  };
+
+  const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setVideoVolume(Number(event.target.value));
   };
 
   const toggleFullscreen = () => {
@@ -334,6 +343,64 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
     }, 3000);
   };
 
+  const handlePlayerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (target) {
+      const tagName = target.tagName.toLowerCase();
+      if (target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+        return;
+      }
+    }
+
+    switch (event.key) {
+      case ' ':
+      case 'k':
+      case 'K':
+        event.preventDefault();
+        void togglePlay();
+        setShowControls(true);
+        break;
+      case 'ArrowLeft':
+      case 'j':
+      case 'J':
+        event.preventDefault();
+        handleSeekBy(-10);
+        setShowControls(true);
+        break;
+      case 'ArrowRight':
+      case 'l':
+      case 'L':
+        event.preventDefault();
+        handleSeekBy(10);
+        setShowControls(true);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        setVideoVolume((isMuted ? 0 : volume) + 0.05);
+        setShowControls(true);
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        setVideoVolume((isMuted ? 0 : volume) - 0.05);
+        setShowControls(true);
+        break;
+      case 'm':
+      case 'M':
+        event.preventDefault();
+        toggleMute();
+        setShowControls(true);
+        break;
+      case 'f':
+      case 'F':
+        event.preventDefault();
+        toggleFullscreen();
+        setShowControls(true);
+        break;
+      default:
+        break;
+    }
+  };
+
   const formatTime = (time: number) => {
     const hours = Math.floor(time / 3600);
     const mins = Math.floor((time % 3600) / 60);
@@ -349,8 +416,11 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
   return (
     <div
       ref={containerRef}
-      className="group relative aspect-video w-full overflow-hidden bg-black"
+      className="group relative aspect-video w-full overflow-hidden bg-black focus:outline-none"
       onMouseMove={handleMouseMove}
+      onMouseDown={() => containerRef.current?.focus()}
+      onKeyDown={handlePlayerKeyDown}
+      tabIndex={0}
       style={{ cursor: showControls ? 'default' : 'none' }}
     >
       <video ref={videoRef} poster={poster} className="h-full w-full" playsInline />

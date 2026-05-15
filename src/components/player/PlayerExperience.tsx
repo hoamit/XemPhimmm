@@ -46,11 +46,6 @@ const PlayerExperience: React.FC<PlayerExperienceProps> = ({ movie, servers, ini
   const [currentEpisodeSlug, setCurrentEpisodeSlug] = useState(initialPosition.episodeSlug);
 
   useEffect(() => {
-    setCurrentServerIndex(initialPosition.serverIndex);
-    setCurrentEpisodeSlug(initialPosition.episodeSlug);
-  }, [initialPosition]);
-
-  useEffect(() => {
     addToHistory(normalizeMovie(movie));
   }, [addToHistory, movie]);
 
@@ -66,7 +61,11 @@ const PlayerExperience: React.FC<PlayerExperienceProps> = ({ movie, servers, ini
       return;
     }
 
-    window.history.replaceState({}, '', `/player/${movie.slug}?ep=${currentEpisode.slug}`);
+    const nextPath = `/player/${movie.slug}?ep=${currentEpisode.slug}`;
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (currentPath !== nextPath) {
+      window.history.replaceState({}, '', nextPath);
+    }
   }, [currentEpisode?.slug, movie.slug]);
 
   const selectServer = useCallback(
