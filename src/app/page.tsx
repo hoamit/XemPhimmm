@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Hero from '@/components/movie/Hero';
 import MovieCarousel from '@/components/movie/MovieCarousel';
 import ContinueWatchingBoundary from '@/components/movie/ContinueWatchingBoundary';
+import FavoritesBoundary from '@/components/movie/FavoritesBoundary';
 import { SkeletonHero } from '@/components/common/Skeleton';
 import { debugWarn } from '@/lib/debug';
 import { HOME_DISCOVER_CARDS, getHomePageData } from '@/lib/catalog';
@@ -56,6 +57,7 @@ export default async function Home() {
         </section>
 
         <ContinueWatchingBoundary />
+        <FavoritesBoundary />
 
         <div className="space-y-10">
           {sections.map((section) => (

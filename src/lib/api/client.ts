@@ -15,7 +15,7 @@ const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_LIST_LIMIT = 24;
 
 type RequestParams = Record<string, string | number | undefined>;
-type SourceKey = 'phimapi' | 'vsmov';
+type SourceKey = 'phimapi' | 'vsmov' | 'ophim';
 
 interface FetchOptions extends Omit<AxiosRequestConfig, 'baseURL' | 'url' | 'params'> {
   params?: RequestParams;
@@ -98,6 +98,68 @@ const SOURCE_PROFILES: ReadonlyArray<MovieSourceProfile> = [
   {
     key: 'vsmov',
     baseUrl: 'https://vsmov.com',
+    buildLatestRequest: (page) => ({
+      endpoint: '/api/danh-sach/phim-moi-cap-nhat',
+      params: { page },
+    }),
+    buildListRequest: (resolvedType, page, params) => {
+      const requestParams: RequestParams = {
+        ...params,
+        page,
+      };
+
+      if (typeof requestParams.sort_field === 'string' && requestParams.sort_field.trim()) {
+        requestParams.sort = requestParams.sort_field;
+      }
+
+      if (typeof requestParams.sort_lang === 'string' && requestParams.sort_lang.trim()) {
+        requestParams.lang = requestParams.sort_lang;
+      }
+
+      delete requestParams.sort_field;
+      delete requestParams.sort_type;
+      delete requestParams.sort_lang;
+
+      switch (resolvedType) {
+        case 'phim-bo':
+          requestParams.type = 'series';
+          break;
+        case 'phim-le':
+          requestParams.type = 'single';
+          break;
+        case 'hoat-hinh':
+          requestParams.type = 'single';
+          if (typeof requestParams.category !== 'string' || !requestParams.category.trim()) {
+            requestParams.category = 'hoat-hinh';
+          }
+          break;
+        case 'tv-shows':
+          requestParams.type = 'single';
+          if (typeof requestParams.category !== 'string' || !requestParams.category.trim()) {
+            requestParams.category = 'chuong-trinh-truyen-hinh';
+          }
+          break;
+        default:
+          requestParams.type = resolvedType;
+          break;
+      }
+
+      return {
+        endpoint: '/api/danh-sach',
+        params: requestParams,
+      };
+    },
+    buildSearchRequest: (keyword, limit, page) => ({
+      endpoint: '/api/tim-kiem',
+      params: { keyword, limit, page },
+    }),
+    buildDetailRequest: (slug) => ({
+      endpoint: `/api/phim/${slug}`,
+    }),
+  },
+  {
+    key: 'ophim',
+    baseUrl: 'https://ophim1.cc',
     buildLatestRequest: (page) => ({
       endpoint: '/api/danh-sach/phim-moi-cap-nhat',
       params: { page },
