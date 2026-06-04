@@ -102,7 +102,7 @@ const MovieFilter: React.FC<{ currentType?: string }> = ({ currentType }) => {
 
   return (
     <div className="rounded-[2rem] border border-white/8 bg-white/[0.035] p-6 shadow-2xl backdrop-blur-xl">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
         <select
           value={filters.category}
           onChange={(e) => handleFilterChange('category', e.target.value)}
@@ -165,7 +165,7 @@ const MovieFilter: React.FC<{ currentType?: string }> = ({ currentType }) => {
 
         <button
           onClick={handleApplyFilter}
-          className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
+          className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
         >
           <Search className="size-4" />
           Tìm kiếm
@@ -182,8 +182,15 @@ const MovieFilter: React.FC<{ currentType?: string }> = ({ currentType }) => {
           font-size: 0.875rem;
           outline: none;
           cursor: pointer;
-          min-width: 140px;
+          width: 100%;
+          min-width: 0;
           transition: all 0.2s;
+        }
+        @media (min-width: 640px) {
+          .filter-select {
+            width: auto;
+            min-width: 140px;
+          }
         }
         .filter-select:hover {
           background-color: rgba(255, 255, 255, 0.1);

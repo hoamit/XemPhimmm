@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -86,6 +86,18 @@ export default function MovieDetailView({ movie, episodes, relatedMovies }: Movi
                   <p className="text-xs font-black uppercase tracking-[0.5em] text-primary">Thông tin phim</p>
                 </div>
 
+                {/* Mobile Poster */}
+                <div className="block xl:hidden mb-6 max-w-[200px] sm:max-w-[240px] mx-auto aspect-[2/3] relative rounded-[2rem] overflow-hidden border border-white/10 bg-white/5 shadow-2xl">
+                  <MovieImage
+                    src={posterSrc}
+                    alt={title}
+                    fill
+                    sizes="(max-width: 640px) 200px, 240px"
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                </div>
+
                 <div className="space-y-4">
                   <h1 className="font-display text-3xl font-black tracking-tight text-white drop-shadow-2xl sm:text-5xl md:text-7xl">
                     {title}
@@ -119,12 +131,12 @@ export default function MovieDetailView({ movie, episodes, relatedMovies }: Movi
                   {summary || 'Nội dung phim đang được cập nhật.'}
                 </p>
 
-                <div className="flex gap-4 pt-4 xl:hidden">
-                  <Link href={`/player/${movie.slug}`} className="btn-primary flex-1">
+                <div className="flex w-full gap-3 pt-4 xl:hidden">
+                  <Link href={`/player/${movie.slug}`} className="btn-primary flex-1 !py-3 !px-4 text-xs sm:!py-4 sm:!px-6 sm:text-sm">
                     <Play className="size-5 fill-current" />
                     Phát ngay
                   </Link>
-                  <FavoriteButton movie={movie} className="btn-secondary !px-0" showText />
+                  <FavoriteButton movie={movie} className="btn-secondary flex-1 sm:flex-initial !py-3 !px-4 text-xs sm:!py-4 sm:!px-6 sm:text-sm" showText />
                 </div>
               </motion.div>
             </div>

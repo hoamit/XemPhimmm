@@ -31,7 +31,11 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movie, className, showT
       )}
     >
       <Heart className={cn("w-5 h-5", favorite && "fill-current")} />
-      {showText && (favorite ? 'Đã thích' : 'Yêu thích')}
+      {showText && (
+        <span className="hidden sm:inline">
+          {favorite ? 'Đã thích' : 'Yêu thích'}
+        </span>
+      )}
     </button>
   );
 };

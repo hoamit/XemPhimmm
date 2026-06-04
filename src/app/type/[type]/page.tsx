@@ -71,7 +71,7 @@ export default async function TypePage({ params, searchParams }: TypePageProps) 
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="hidden sm:grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {spotlight.map((movie) => (
                 <div key={movie.slug} className="rounded-[1.5rem] border border-white/8 bg-black/26 p-3 backdrop-blur-xl">
                   <p className="text-[11px] uppercase tracking-[0.28em] text-white/35">{movie.year}</p>

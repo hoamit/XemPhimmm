@@ -2,9 +2,63 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { AlertTriangle, Maximize, Pause, Play, RotateCcw, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import { AlertTriangle, Maximize, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { debugWarn } from '@/lib/debug';
 import { cn } from '@/lib/utils';
+
+const SeekBackward10: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+    <text
+      x="12"
+      y="15"
+      fontSize="8"
+      fontWeight="900"
+      fontFamily="system-ui, sans-serif"
+      textAnchor="middle"
+      fill="currentColor"
+      stroke="none"
+    >
+      10
+    </text>
+  </svg>
+);
+
+const SeekForward10: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+    <text
+      x="12"
+      y="15"
+      fontSize="8"
+      fontWeight="900"
+      fontFamily="system-ui, sans-serif"
+      textAnchor="middle"
+      fill="currentColor"
+      stroke="none"
+    >
+      10
+    </text>
+  </svg>
+);
 
 interface VideoPlayerProps {
   url: string;
@@ -485,7 +539,7 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
           ) : null}
         </div>
 
-        <div className="space-y-4 p-4 md:p-6">
+        <div className="space-y-3 p-3 md:p-6">
           <input
             type="range"
             min="0"
@@ -495,8 +549,8 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
             className="h-1 w-full cursor-pointer accent-primary transition-all duration-200 hover:h-2"
           />
 
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
+          <div className="flex items-center justify-between gap-1 sm:gap-6">
+            <div className="flex items-center gap-2 sm:gap-5">
                 <button type="button" onClick={() => void togglePlay()} className="text-white transition-colors hover:text-primary">
                   {isPlaying ? <Pause className="size-7 fill-current" /> : <Play className="size-7 fill-current" />}
                 </button>
@@ -507,7 +561,7 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
                   className="text-white transition-colors hover:text-primary"
                   aria-label="Tua lùi 10 giây"
                 >
-                  <SkipBack className="size-5" />
+                  <SeekBackward10 className="size-5" />
                 </button>
 
                 <button
@@ -516,7 +570,7 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
                   className="text-white transition-colors hover:text-primary"
                   aria-label="Tua tới 10 giây"
                 >
-                  <SkipForward className="size-5" />
+                  <SeekForward10 className="size-5" />
                 </button>
 
                 <div className="group/volume relative flex items-center gap-2">
@@ -530,17 +584,17 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
                     step="0.05"
                     value={isMuted ? 0 : volume}
                     onChange={handleVolumeChange}
-                    className="player-volume-slider h-1 w-14 cursor-pointer accent-white transition-all duration-300 group-hover/volume:w-24"
+                    className="player-volume-slider hidden md:block h-1 w-14 cursor-pointer accent-white transition-all duration-300 group-hover/volume:w-24"
                     aria-label="Âm lượng"
                   />
                 </div>
 
-              <div className="text-sm font-medium text-white/85">
+              <div className="text-xs sm:text-sm font-medium text-white/85">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {qualityLevels.length > 0 && (
                 <select
                   value={currentQuality}

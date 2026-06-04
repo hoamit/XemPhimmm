@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -173,11 +173,11 @@ const PlayerExperience: React.FC<PlayerExperienceProps> = ({ movie, servers, ini
                   <p className="mt-3 text-lg text-white/45">{movie.origin_name}</p>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex w-full gap-3 sm:w-auto">
                   <button
                     type="button"
                     onClick={handlePreviousEpisode}
-                    className="btn-secondary"
+                    className="btn-secondary flex-1 sm:flex-initial !py-2.5 !px-4 text-xs sm:!py-4 sm:!px-6 sm:text-sm"
                     disabled={currentEpisodeIndex <= 0}
                   >
                     <SkipBack className="size-4" />
@@ -186,7 +186,7 @@ const PlayerExperience: React.FC<PlayerExperienceProps> = ({ movie, servers, ini
                   <button
                     type="button"
                     onClick={handleNextEpisode}
-                    className="btn-primary"
+                    className="btn-primary flex-1 sm:flex-initial !py-2.5 !px-4 text-xs sm:!py-4 sm:!px-6 sm:text-sm"
                     disabled={currentEpisodeIndex >= currentServer.server_data.length - 1}
                   >
                     Tập tiếp
@@ -218,13 +218,13 @@ const PlayerExperience: React.FC<PlayerExperienceProps> = ({ movie, servers, ini
                     type="button"
                     onClick={() => setCurrentEpisodeSlug(episode.slug)}
                     className={cn(
-                      'rounded-2xl border px-3 py-4 text-sm font-semibold transition-all duration-300',
+                      'rounded-xl border px-2 py-3 text-xs sm:rounded-2xl sm:px-3 sm:py-4 sm:text-sm font-semibold transition-all duration-300',
                       episode.slug === currentEpisode.slug
                         ? 'border-rose-300/25 bg-rose-500/15 text-white'
                         : 'border-white/8 bg-black/28 text-white/68 hover:border-white/16 hover:bg-white/[0.08] hover:text-white'
                     )}
                   >
-                    {episode.name}
+                    {episode.name.replace(/Tập\s+/i, '')}
                   </button>
                 ))}
               </div>

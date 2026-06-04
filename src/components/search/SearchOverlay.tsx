@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -104,9 +104,9 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-3xl"
+          className="fixed inset-0 z-[100] overflow-y-auto bg-black/95 backdrop-blur-3xl py-12 md:py-20"
         >
-          <div className="mx-auto w-full max-w-4xl px-4 pt-20 md:pt-32">
+          <div className="mx-auto w-full max-w-4xl px-4">
             <div className="relative">
               <form onSubmit={handleSearch} className="group relative">
                 <Search className="absolute left-6 top-1/2 size-6 -translate-y-1/2 text-white/30 transition-colors group-focus-within:text-primary" />
