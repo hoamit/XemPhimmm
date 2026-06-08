@@ -106,6 +106,10 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
   const lastVolumeRef = useRef(1);
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const isPlayingRef = useRef(false);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -115,8 +119,6 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
   const [isError, setIsError] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [qualityLevels, setQualityLevels] = useState<{ index: number; label: string }[]>([]);
-  const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 is Auto
   const hlsRef = useRef<Hls | null>(null);
   const playableUrl = useMemo(() => resolvePlayableUrl(url), [url]);
   const hasSourceError = !playableUrl;
@@ -183,17 +185,11 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
       hls.attachMedia(video);
       hlsRef.current = hls;
 
-      hls.on(Hls.Events.MANIFEST_PARSED, async (_, data) => {
+      hls.on(Hls.Events.MANIFEST_PARSED, async () => {
         setIsLoading(false);
         if (watchdogRef.current) {
           clearTimeout(watchdogRef.current);
         }
-
-        const levels = data.levels.map((level, index) => ({
-          index,
-          label: level.name || `${level.height}p`,
-        }));
-        setQualityLevels([{ index: -1, label: 'Auto' }, ...levels]);
 
         try {
           await video.play();
@@ -204,13 +200,7 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
         }
       });
 
-      hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-        if (hls?.autoLevelEnabled) {
-          setCurrentQuality(-1);
-        } else {
-          setCurrentQuality(data.level);
-        }
-      });
+
 
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (!data.fatal) {
@@ -374,16 +364,8 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
       void containerRef.current.requestFullscreen();
     }
   };
-  
-  const handleQualityChange = (index: number) => {
-    const hls = hlsRef.current;
-    if (!hls) return;
-    
-    hls.currentLevel = index;
-    setCurrentQuality(index);
-  };
 
-  const handleMouseMove = () => {
+  const triggerShowControls = () => {
     setShowControls(true);
 
     if (controlsTimeoutRef.current) {
@@ -391,10 +373,14 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
     }
 
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
+      if (isPlayingRef.current) {
         setShowControls(false);
       }
-    }, 3000);
+    }, 3500);
+  };
+
+  const handleMouseMove = () => {
+    triggerShowControls();
   };
 
   const handlePlayerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -486,22 +472,29 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
         )}
         onClick={(e: React.MouseEvent) => {
           if (e.target === e.currentTarget) {
-            void togglePlay();
+            if (showControls) {
+              setShowControls(false);
+              if (controlsTimeoutRef.current) {
+                clearTimeout(controlsTimeoutRef.current);
+              }
+            } else {
+              triggerShowControls();
+            }
           }
         }}
       >
         <div 
           className="flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent p-4" 
-          onClick={() => isPlaying && setShowControls(false)}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isPlaying) setShowControls(false);
+          }}
         >
           {/* Header area */}
         </div>
 
         <div 
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
-          onClick={() => {
-            void togglePlay();
-          }}
         >
           {isLoading && !isError && !hasSourceError ? (
             <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -525,21 +518,26 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
             </div>
           ) : null}
 
-          {!isPlaying && !isLoading && !isError ? (
+          {(!isPlaying || showControls) && !isLoading && !isError ? (
             <button
               type="button"
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 void togglePlay();
+                triggerShowControls();
               }}
-              className="pointer-events-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/90 text-white shadow-[0_0_30px_rgba(215,25,45,0.55)] transition-transform duration-300 hover:scale-105"
+              className="pointer-events-auto flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-full bg-primary/90 text-white shadow-[0_0_30px_rgba(215,25,45,0.55)] transition-transform duration-300 hover:scale-105 active:scale-95"
             >
-              <Play className="ml-1 size-10 fill-current" />
+              {isPlaying ? (
+                <Pause className="size-8 md:size-10 fill-current text-white" />
+              ) : (
+                <Play className="ml-1 size-8 md:size-10 fill-current text-white" />
+              )}
             </button>
           ) : null}
         </div>
 
-        <div className="space-y-3 p-3 md:p-6">
+        <div className="space-y-3 p-3 md:p-6" onClick={(e) => e.stopPropagation()}>
           <input
             type="range"
             min="0"
@@ -549,33 +547,53 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
             className="h-1 w-full cursor-pointer accent-primary transition-all duration-200 hover:h-2"
           />
 
-          <div className="flex items-center justify-between gap-1 sm:gap-6">
-            <div className="flex items-center gap-2 sm:gap-5">
-                <button type="button" onClick={() => void togglePlay()} className="text-white transition-colors hover:text-primary">
-                  {isPlaying ? <Pause className="size-7 fill-current" /> : <Play className="size-7 fill-current" />}
+          <div className="flex items-center justify-between gap-1.5 sm:gap-6">
+            <div className="flex items-center gap-1.5 sm:gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void togglePlay();
+                    triggerShowControls();
+                  }}
+                  className="text-white transition-colors hover:text-primary p-2 rounded-full hover:bg-white/10 active:bg-white/20"
+                >
+                  {isPlaying ? <Pause className="size-5 sm:size-6 fill-current" /> : <Play className="size-5 sm:size-6 fill-current" />}
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleSeekBy(-10)}
-                  className="text-white transition-colors hover:text-primary"
+                  onClick={() => {
+                    handleSeekBy(-10);
+                    triggerShowControls();
+                  }}
+                  className="text-white transition-colors hover:text-primary p-2 rounded-full hover:bg-white/10 active:bg-white/20"
                   aria-label="Tua lùi 10 giây"
                 >
-                  <SeekBackward10 className="size-5" />
+                  <SeekBackward10 className="size-5 sm:size-6" />
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleSeekBy(10)}
-                  className="text-white transition-colors hover:text-primary"
+                  onClick={() => {
+                    handleSeekBy(10);
+                    triggerShowControls();
+                  }}
+                  className="text-white transition-colors hover:text-primary p-2 rounded-full hover:bg-white/10 active:bg-white/20"
                   aria-label="Tua tới 10 giây"
                 >
-                  <SeekForward10 className="size-5" />
+                  <SeekForward10 className="size-5 sm:size-6" />
                 </button>
 
-                <div className="group/volume relative flex items-center gap-2">
-                  <button type="button" onClick={toggleMute} className="text-white transition-colors hover:text-primary">
-                    {isMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+                <div className="group/volume relative flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleMute();
+                      triggerShowControls();
+                    }}
+                    className="text-white transition-colors hover:text-primary p-2 rounded-full hover:bg-white/10 active:bg-white/20"
+                  >
+                    {isMuted ? <VolumeX className="size-5 sm:size-6" /> : <Volume2 className="size-5 sm:size-6" />}
                   </button>
                   <input
                     type="range"
@@ -589,26 +607,12 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
                   />
                 </div>
 
-              <div className="text-xs sm:text-sm font-medium text-white/85">
-                {formatTime(currentTime)} / {formatTime(duration)}
+              <div className="text-[11px] sm:text-xs font-semibold text-white/80 ml-1 select-none">
+                {formatTime(currentTime)} <span className="text-white/40">/</span> {formatTime(duration)}
               </div>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
-              {qualityLevels.length > 0 && (
-                <select
-                  value={currentQuality}
-                  onChange={(e) => handleQualityChange(Number(e.target.value))}
-                  className="cursor-pointer bg-transparent text-sm font-semibold text-white outline-none hover:text-primary transition-colors"
-                >
-                  {qualityLevels.map((level) => (
-                    <option key={level.index} value={level.index} className="bg-secondary">
-                      {level.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-
               <select
                 value={playbackSpeed}
                 onChange={(event) => {
@@ -617,8 +621,9 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
                   if (videoRef.current) {
                     videoRef.current.playbackRate = speed;
                   }
+                  triggerShowControls();
                 }}
-                className="cursor-pointer bg-transparent text-sm font-semibold text-white outline-none hover:text-primary transition-colors"
+                className="cursor-pointer bg-transparent text-xs sm:text-sm font-semibold text-white outline-none hover:text-primary transition-colors py-1 px-1.5 rounded hover:bg-white/10"
               >
                 <option value="0.5" className="bg-secondary">0.5x</option>
                 <option value="1" className="bg-secondary">1x</option>
@@ -626,8 +631,15 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
                 <option value="2" className="bg-secondary">2x</option>
               </select>
 
-              <button type="button" onClick={toggleFullscreen} className="text-white transition-colors hover:text-primary">
-                <Maximize className="size-5" />
+              <button
+                type="button"
+                onClick={() => {
+                  toggleFullscreen();
+                  triggerShowControls();
+                }}
+                className="text-white transition-colors hover:text-primary p-2 rounded-full hover:bg-white/10 active:bg-white/20"
+              >
+                <Maximize className="size-5 sm:size-6" />
               </button>
             </div>
           </div>
