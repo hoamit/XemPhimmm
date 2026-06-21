@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { AlertTriangle, Maximize, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { AlertTriangle, Maximize, Minimize, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { debugWarn } from '@/lib/debug';
 import { cn } from '@/lib/utils';
 
@@ -119,7 +119,51 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
   const [isError, setIsError] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const hlsRef = useRef<Hls | null>(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    const handleWebkitBeginFullscreen = () => {
+      setIsFullscreen(true);
+    };
+
+    const handleWebkitEndFullscreen = () => {
+      setIsFullscreen(false);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    const video = videoRef.current;
+    if (video) {
+      video.addEventListener('webkitbeginfullscreen', handleWebkitBeginFullscreen);
+      video.addEventListener('webkitendfullscreen', handleWebkitEndFullscreen);
+    }
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+
+      if (video) {
+        video.removeEventListener('webkitbeginfullscreen', handleWebkitBeginFullscreen);
+        video.removeEventListener('webkitendfullscreen', handleWebkitEndFullscreen);
+      }
+    };
+  }, []);
   const playableUrl = useMemo(() => resolvePlayableUrl(url), [url]);
   const hasSourceError = !playableUrl;
 
@@ -354,14 +398,44 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
   };
 
   const toggleFullscreen = () => {
-    if (!containerRef.current) {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container) {
       return;
     }
 
-    if (document.fullscreenElement) {
-      void document.exitFullscreen();
+    const fullscreenElement =
+      document.fullscreenElement ||
+      (document as any).webkitFullscreenElement ||
+      (document as any).mozFullScreenElement ||
+      (document as any).msFullscreenElement;
+
+    if (fullscreenElement) {
+      if (document.exitFullscreen) {
+        void document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        void (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        void (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        void (document as any).msExitFullscreen();
+      }
     } else {
-      void containerRef.current.requestFullscreen();
+      if (container.requestFullscreen) {
+        void container.requestFullscreen();
+      } else if ((container as any).webkitRequestFullscreen) {
+        void (container as any).webkitRequestFullscreen();
+      } else if ((container as any).mozRequestFullScreen) {
+        void (container as any).mozRequestFullScreen();
+      } else if ((container as any).msRequestFullscreen) {
+        void (container as any).msRequestFullscreen();
+      } else if (video && (video as any).webkitEnterFullscreen) {
+        try {
+          void (video as any).webkitEnterFullscreen();
+        } catch (error) {
+          console.error('webkitEnterFullscreen failed:', error);
+        }
+      }
     }
   };
 
@@ -638,8 +712,13 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
                   triggerShowControls();
                 }}
                 className="text-white transition-colors hover:text-primary p-2 rounded-full hover:bg-white/10 active:bg-white/20"
+                aria-label={isFullscreen ? 'Thu nhỏ' : 'Phóng to'}
               >
-                <Maximize className="size-5 sm:size-6" />
+                {isFullscreen ? (
+                  <Minimize className="size-5 sm:size-6" />
+                ) : (
+                  <Maximize className="size-5 sm:size-6" />
+                )}
               </button>
             </div>
           </div>
