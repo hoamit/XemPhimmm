@@ -701,6 +701,7 @@ function VideoPlayerInstance({ url, poster, onEnded, onError, onRetry }: VideoPl
               >
                 <option value="0.5" className="bg-secondary">0.5x</option>
                 <option value="1" className="bg-secondary">1x</option>
+                <option value="1.25" className="bg-secondary">1.25x</option>
                 <option value="1.5" className="bg-secondary">1.5x</option>
                 <option value="2" className="bg-secondary">2x</option>
               </select>
